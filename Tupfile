@@ -1,0 +1,13 @@
+# : |> ocamlc -pp refmt -g -I ./ -c -impl a.re |> a.cmo a.cmi
+# : a.cmi |> ocamlc -pp refmt -g -I ./ -c -impl b.re |> b.cmo b.cmi
+# : |> ocamlc -pp refmt -g -I ./ -c -impl c.re |> c.cmo c.cmi
+# : *.cmi |> ocamlc -pp refmt -g -I ./ -c -impl main.re |> main.cmo main.cmi
+# : *.cmo |> ocamlc -I ./ -o main.out a.cmo b.cmo c.cmo main.cmo |> main.out
+
+: |> mkdir -p _build |>
+
+preload src
+run ./myScript.js src/*.re
+
+# preload node_modules/
+# run ./test.js node_modules/*
