@@ -1,13 +1,40 @@
-# : |> ocamlc -pp refmt -g -I ./ -c -impl a.re |> a.cmo a.cmi
-# : a.cmi |> ocamlc -pp refmt -g -I ./ -c -impl b.re |> b.cmo b.cmi
-# : |> ocamlc -pp refmt -g -I ./ -c -impl c.re |> c.cmo c.cmi
-# : *.cmi |> ocamlc -pp refmt -g -I ./ -c -impl main.re |> main.cmo main.cmi
-# : *.cmo |> ocamlc -I ./ -o main.out a.cmo b.cmo c.cmo main.cmo |> main.out
-
 : |> mkdir -p _build |>
+: |> mkdir -p _build/chenglou |>
+: |> mkdir -p _build/bookshop |>
+: |> mkdir -p _build/hi |>
 
+preload node_modules/
 preload src
-run ./myScript.js src/*.re
 
-# preload node_modules/
-# run ./test.js node_modules/*
+# Building library _build/chenglou---chenglou
+# Generate module alias file into _build/chenglou
+preload node_modules/chenglou/src
+run ./moduleAlias.js chenglou node_modules/chenglou/src/*.re
+# Compile each file in this library
+: _build/chenglou/*  \
+  |> ocamlc -pp refmt -g -open Chenglou -I _build/chenglou  -o _build/chenglou/chenglou__test.cmo -intf-suffix rei -c -impl ./node_modules/chenglou/src/test.re \
+  |> _build/chenglou/chenglou__test.cmo _build/chenglou/chenglou__test.cmi
+# Generate the .cma library file, so that other libraries importing this module can simply include this single output.
+: _build/chenglou/*  \
+  |> ocamlc -pp refmt -g -open Chenglou  -a -o _build/chenglou/lib.cma  _build/chenglou/chenglou.cmo _build/chenglou/chenglou__test.cmo \
+  |> _build/chenglou/lib.cma
+
+
+# Building library _build/bookshop---bookshop
+# Generate module alias file into _build/bookshop
+preload node_modules/bookshop/src
+run ./moduleAlias.js bookshop node_modules/bookshop/src/*.re
+# Compile each file in this library
+: _build/bookshop/* _build/chenglou/* \
+  |> ocamlc -pp refmt -g -open Bookshop -I _build/bookshop -I _build/chenglou -o _build/bookshop/bookshop__myBook.cmo -intf-suffix rei -c -impl ./node_modules/bookshop/src/myBook.re \
+  |> _build/bookshop/bookshop__myBook.cmo _build/bookshop/bookshop__myBook.cmi
+: _build/bookshop/* _build/chenglou/* \
+  |> ocamlc -pp refmt -g -open Bookshop -I _build/bookshop -I _build/chenglou -o _build/bookshop/bookshop__test.cmo -intf-suffix rei -c -impl ./node_modules/bookshop/src/test.re \
+  |> _build/bookshop/bookshop__test.cmo _build/bookshop/bookshop__test.cmi
+# Generate the .cma library file, so that other libraries importing this module can simply include this single output.
+: _build/bookshop/* _build/chenglou/lib.cma \
+  |> ocamlc -pp refmt -g -open Bookshop -I _build/chenglou -a -o _build/bookshop/lib.cma _build/chenglou/lib.cma _build/bookshop/bookshop.cmo _build/bookshop/bookshop__myBook.cmo _build/bookshop/bookshop__test.cmo \
+  |> _build/bookshop/lib.cma
+
+
+run ./myScript.js src/*.re node_modules/*
